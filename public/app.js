@@ -116,7 +116,20 @@ async function handleSignal(message) {
       }
       if (pc) { pc.close(); peers.delete(from); }
       pc = new RTCPeerConnection(rtcConfig); peers.set(from, pc);
-      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+      for (const track of localStream.getTracks()) {
+        const sender = pc.addTrack(track, localStream);
+        const isVideo = track.kind === "video";
+        if (isVideo) track.contentHint = "detail";
+        const parameters = sender.getParameters();
+        if (!parameters.encodings || !parameters.encodings.length) parameters.encodings = [{}];
+        parameters.encodings[0].maxBitrate = isVideo ? 5000000 : 192000;
+        if (isVideo) parameters.degradationPreference = "balanced";
+        try {
+          await sender.setParameters(parameters);
+        } catch (err) {
+          console.warn("Could not apply sender bitrate preference:", err);
+        }
+      }
       pc.onicecandidate = e => { if (e.candidate) signal(from, { type: "candidate", candidate: e.candidate }); };
       pc.onconnectionstatechange = () => {
         if (["failed", "closed"].includes(pc.connectionState)) {
