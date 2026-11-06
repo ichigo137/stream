@@ -1,9 +1,11 @@
 const $ = id => document.getElementById(id);
 const sections = ["home", "host", "viewer", "joinPanel"];
-const SUPABASE_URL = "https://vddtqvmwkyuievzwnjnj.supabase.co";
-const SUPABASE_KEY = "sb_publishable_qLzuKdl4whMM0gURg_yIOQ_xPx6wQwh";
+const config = window.STREAM_CONFIG || {};
+if (!config.supabaseUrl || !config.supabasePublishableKey) {
+  throw new Error("Stream is not configured. Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY on the server.");
+}
 const clientId = crypto.randomUUID();
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
 const rtcConfig = { iceServers: [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" }
