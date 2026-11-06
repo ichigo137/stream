@@ -5,7 +5,7 @@ if (!config.supabaseUrl || !config.supabasePublishableKey) {
   throw new Error("Stream is not configured. Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY on the server.");
 }
 const clientId = crypto.randomUUID();
-const supabase = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
+const supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
 const rtcConfig = { iceServers: [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" }
@@ -30,7 +30,7 @@ function roomLink(id) { return location.origin + location.pathname + "?room=" + 
 async function connectRoom(id, role) {
   if (channel) { await channel.unsubscribe(); channel = null; }
   roomId = id; currentRole = role; hostClientId = null;
-  channel = supabase.channel("stream-" + id, {
+  channel = supabaseClient.channel("stream-" + id, {
     config: {
       private: false,
       broadcast: { self: false, ack: true },
