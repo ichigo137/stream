@@ -11,7 +11,7 @@ const rtcConfig = { iceServers: [
   { urls: "stun:stun1.l.google.com:19302" }
 ]};
 let mode = "home", roomId = null, localStream = null, channel = null;
-let currentRole = null, hostClientId = null;
+let currentRole = null, hostClientId = null, viewerOfferReceived = false;
 const peers = new Map();
 const earlyCandidates = new Map();
 
@@ -66,10 +66,15 @@ async function connectRoom(id, role) {
   const { error } = await channel.track({ clientId, role, joinedAt: Date.now() });
   if (error) throw error;
   if (role === "viewer") {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    const hosts = Object.values(channel.presenceState()).flat().filter(p => p.role === "host");
-    if (!hosts.length) throw new Error("No active host in this room.");
-    hostClientId = hosts[0].clientId;
+    const deadline = Date.now() + 10000;
+    let host = null;
+    while (Date.now() < deadline) {
+      host = Object.values(channel.presenceState()).flat().find(p => p.role === "host");
+      if (host) break;
+      await new Promise(resolve => setTimeout(resolve, 250));
+    }
+    if (!host) throw new Error("No active host in this room.");
+    hostClientId = host.clientId;
   }
 }
 async function signal(to, data) {
@@ -105,12 +110,16 @@ async function handleSignal(message) {
     let pc = peers.get(from);
     if (data.type === "join") {
       if (!localStream) return;
+      if (pc?.localDescription?.type === "offer") {
+        await signal(from, { type: "offer", sdp: pc.localDescription });
+        return;
+      }
       if (pc) { pc.close(); peers.delete(from); }
       pc = new RTCPeerConnection(rtcConfig); peers.set(from, pc);
       localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
       pc.onicecandidate = e => { if (e.candidate) signal(from, { type: "candidate", candidate: e.candidate }); };
       pc.onconnectionstatechange = () => {
-        if (["failed", "closed", "disconnected"].includes(pc.connectionState)) {
+        if (["failed", "closed"].includes(pc.connectionState)) {
           pc.close(); peers.delete(from);
         }
       };
@@ -130,6 +139,11 @@ async function handleSignal(message) {
   } else if (mode === "viewer") {
     let pc = peers.get("host");
     if (data.type === "offer") {
+      viewerOfferReceived = true;
+      if (pc?.remoteDescription && pc.localDescription?.type === "answer") {
+        await signal(from, { type: "answer", sdp: pc.localDescription });
+        return;
+      }
       if (pc) pc.close();
       pc = new RTCPeerConnection(rtcConfig); peers.set("host", pc);
       pc.ontrack = e => {
@@ -163,8 +177,28 @@ $("startBtn").onclick = async () => {
   if (!navigator.mediaDevices?.getDisplayMedia) return toast("Screen sharing requires a modern browser and HTTPS.");
   try {
     localStream = await navigator.mediaDevices.getDisplayMedia({
-      video: { frameRate: { ideal: 30, max: 60 } }, audio: true
+      video: { frameRate: { ideal: 30, max: 60 } },
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
     });
+    const audioTrack = localStream.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.contentHint = "music";
+      try {
+        await audioTrack.applyConstraints({
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        });
+      } catch (err) {
+        console.warn("Could not apply high-fidelity display-audio constraints:", err);
+      }
+    } else {
+      toast("No shared audio detected. In Chrome, select the tab and enable Share tab audio.");
+    }
     const id = crypto.randomUUID().replaceAll("-", "").slice(0, 20);
     await connectRoom(id, "host");
     $("hostVideo").srcObject = localStream; $("hostPlaceholder").classList.add("hidden");
@@ -210,13 +244,18 @@ $("joinForm").onsubmit = async e => {
   const id = roomFromInput($("roomInput").value); if (!id) return;
   $("joinError").textContent = ""; $("viewerPlaceholder").classList.remove("hidden");
   try {
+    viewerOfferReceived = false;
     await connectRoom(id, "viewer");
     show("viewer");
     document.querySelector("#viewer .status-pill").innerHTML = "<i></i> CONNECTING";
-    await channel.send({
-      type: "broadcast", event: "signal",
-      payload: { from: clientId, data: { type: "join" } }
-    });
+    for (let attempt = 0; attempt < 6 && !viewerOfferReceived; attempt++) {
+      await channel.send({
+        type: "broadcast", event: "signal",
+        payload: { from: clientId, data: { type: "join" } }
+      });
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    if (!viewerOfferReceived) throw new Error("The host did not respond. Ask them to keep the stream open and try again.");
   } catch (err) {
     $("joinError").textContent = err.message === "No active host in this room."
       ? "No one is broadcasting in this room right now."
