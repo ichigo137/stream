@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#090b12" />
+  <meta name="description" content="Share your screen live with anyone using a link." />
+  <title>Stream — Share your screen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+  <header class="topbar">
+    <a class="brand" href="./"><span class="brand-mark"><span></span><span></span><span></span></span>stream<span class="brand-dot">.</span></a>
+    <div class="top-right"><span class="secure"><i></i> Peer-to-peer streaming</span></div>
+  </header>
+  <main>
+    <section id="home" class="hero">
+      <div class="eyebrow"><span class="live-dot"></span> YOUR SCREEN. THEIR WINDOW.</div>
+      <h1>Share what<br> matters<span class="gradient-text">.</span></h1>
+      <p class="subtitle">One link is all it takes. Share your screen, bring people in, and let them see and hear it live.</p>
+      <div class="hero-actions">
+        <button id="startBtn" class="button primary"><span class="button-icon">↗</span> Start a stream</button>
+        <button id="joinBtn" class="button secondary">Join a stream <span>→</span></button>
+      </div>
+      <div class="feature-row">
+        <div><span class="feature-icon">◉</span><span>Live screen & audio</span></div>
+        <div><span class="feature-icon">♧</span><span>Join by link</span></div>
+        <div><span class="feature-icon">⌁</span><span>No viewer account</span></div>
+      </div>
+      <div class="preview-card">
+        <div class="preview-top"><div class="window-dots"><i></i><i></i><i></i></div><span>STREAM PREVIEW</span><span class="preview-live"><i></i> LIVE</span></div>
+        <div class="preview-content"><div class="preview-orbit"><div class="screen-symbol">▣</div></div><strong>Your screen, shared live.</strong><span>Invite anyone, anywhere.</span></div>
+        <div class="preview-bottom"><span><i class="tiny-green"></i> End-to-end media connection</span><span>WEBRTC</span></div>
+      </div>
+      <p class="fineprint">Your browser will ask what screen or tab you want to share. You stay in control.</p>
+    </section>
+
+    <section id="host" class="workspace hidden">
+      <div class="section-heading"><div><div class="eyebrow"><span class="live-dot"></span> BROADCAST STUDIO</div><h2>You're live<span class="gradient-text">.</span></h2><p>Share this link with anyone you want to invite.</p></div><span class="status-pill"><i></i> LIVE</span></div>
+      <div class="share-panel"><div class="share-label">YOUR INVITE LINK</div><div class="link-row"><input id="shareLink" readonly><button id="copyBtn" class="button primary small">Copy link</button></div><div id="copyHint" class="hint">Anyone with this link can join as a viewer.</div></div>
+      <div class="video-shell"><video id="hostVideo" autoplay muted playsinline></video><div id="hostPlaceholder" class="video-placeholder"><div class="placeholder-icon">▣</div><strong>Waiting for screen share</strong><span>Choose a screen, window, or browser tab when prompted.</span></div><div class="video-tag"><i></i> YOUR PREVIEW</div></div>
+      <div class="control-row"><div class="viewer-count"><span>◉</span><strong id="viewerCount">0</strong> watching</div><button id="stopBtn" class="button danger">■ End stream</button></div>
+    </section>
+
+    <section id="viewer" class="workspace hidden">
+      <div class="section-heading"><div><div class="eyebrow"><span class="live-dot"></span> LIVE SESSION</div><h2>You're watching<span class="gradient-text">.</span></h2><p>You're connected to the host's live stream.</p></div><span class="status-pill"><i></i> CONNECTING</span></div>
+      <div class="video-shell viewer-shell"><video id="viewerVideo" autoplay playsinline controls></video><div id="viewerPlaceholder" class="video-placeholder"><div class="loader"></div><strong>Connecting to stream</strong><span>Hang tight, this should only take a moment.</span></div></div>
+      <div class="viewer-footer"><span><i class="tiny-green"></i> Live stream</span><span>Audio plays through your device</span></div>
+    </section>
+
+    <section id="joinPanel" class="join-panel hidden"><button id="backBtn" class="back-button">← Back</button><div class="eyebrow">JOIN A SESSION</div><h2>Got a link?</h2><p>Paste the stream link or enter its room code.</p><form id="joinForm"><input id="roomInput" autocomplete="off" placeholder="Paste link or room code" required><button class="button primary" type="submit">Join stream →</button></form><div id="joinError" class="error"></div></section>
+    <div id="toast" class="toast"></div>
+  </main>
+  <footer><span>stream<span class="brand-dot">.</span></span><span>Made for sharing moments.</span></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
